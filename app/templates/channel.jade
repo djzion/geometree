@@ -1,0 +1,15 @@
+div.channel(data-channel=id)
+    label Channel
+    input(data-value-for="name", value=name)
+
+    label Threshold
+    input(data-value-for="threshold", value=threshold)
+    input.threshold(value=threshold, type="range", min="0", max="1", step="0.005")
+
+    label Frequency
+    input(data-value-for="frequency", value=frequency)
+    input.frequency(value=frequency, type="range", min="0", max="511")
+
+    label Freq. Range
+    input(data-value-for="frequencyRange", value=frequencyRange)
+    input.frequencyRange(value=frequencyRange, type="range", min="0", max="100")
