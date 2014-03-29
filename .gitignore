@@ -1,4 +1,4 @@
-_public/
+public/
 node_modules/
 *.html
 .idea/
