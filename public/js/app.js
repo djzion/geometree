@@ -157,96 +157,98 @@ window.require.register("scripts/views/seed", function(exports, require, module)
     };
 
     Seed.prototype.drawCircles = function() {
-      var getPos, levelScaleFactor,
-        _this = this;
+      var circle;
       this.pos = _(this.center).clone();
-      this.drawCircle({
+      circle = this.drawCircle({
         "class": 'center'
       });
-      getPos = function(rads, rscale) {
-        if (rscale == null) {
-          rscale = 1;
-        }
-        return {
-          x: _this.center.x + (Math.sin(rads)) * (_this.r * rscale),
-          y: _this.center.y - (Math.cos(rads)) * (_this.r * rscale)
-        };
-      };
-      levelScaleFactor = 0.866;
+      this.levelScaleFactor = 0.866;
       this.level = 1;
-      this.iterRadians(function(i, degrees, rads) {
-        _this.pos = getPos(rads, 1);
-        return _this.drawCircle({
-          "class": 'level-1',
-          'data-id': i
-        });
-      }, 6);
       if (this.model.get('mode') === 'seed') {
         this.pos = _(this.center).clone();
         this.drawCircle({
           "class": 'outer',
           r: this.r * 2
         });
-        return;
+      } else {
+        return this.drawGeneration(1, circle);
       }
-      this.svg.selectAll('circle.level-1').each(function(circle) {
-        _this.pos = {
-          x: circle.attr('cx'),
-          y: circle.attr('cy')
-        };
-        _this.iterRadians(function(i, degrees, rads) {
-          _this.pos = getPos(rads, 1);
-          return _this.drawCircle({
-            "class": 'level-2',
-            'data-id': i
-          });
-        }, 6);
-        debugger;
-      });
-      return;
-      this.level = 2;
-      this.iterRadians(function(i, degrees, rads) {
-        _this.pos = getPos(rads, 2);
-        return _this.drawCircle({
-          "class": 'level-2'
-        });
-      }, 6);
-      this.iterRadians(function(i, degrees, rads) {
-        _this.pos = getPos(rads, 2 * levelScaleFactor);
-        return _this.drawCircle({
-          "class": 'level-2'
-        });
-      }, 6, 30);
-      this.level = 3;
-      this.iterRadians(function(i, degrees, rads) {
-        _this.pos = getPos(rads, 3);
-        return _this.drawCircle({
-          "class": 'level-3'
-        });
-      }, 6);
-      this.iterRadians(function(i, degrees, rads) {
-        _this.pos = getPos(rads, 3 * .88);
-        return _this.drawCircle({
-          "class": 'level-3'
-        });
-      }, 6, 19);
-      return this.iterRadians(function(i, degrees, rads) {
-        _this.pos = getPos(rads, 3 * .89);
-        return _this.drawCircle({
-          "class": 'level-3'
-        });
-      }, 6, -19);
     };
 
-    Seed.prototype.drawCircle = function(attrs) {
+    Seed.prototype.drawGeneration = function(gen, circle) {
+      var childCount, circles, getPos, i, rect, x, _draw, _i, _j, _len, _ref1, _results,
+        _this = this;
+      if (gen >= 3) {
+        return;
+      }
+      getPos = function(rads, rscale) {
+        if (rscale == null) {
+          rscale = 1;
+        }
+        return {
+          x: _this.pos.x + (Math.sin(rads)) * (_this.r * rscale),
+          y: _this.pos.y - (Math.cos(rads)) * (_this.r * rscale)
+        };
+      };
+      rect = circle.getBoundingClientRect();
+      this.pos = {
+        x: rect.left + rect.width / 2,
+        y: rect.top + rect.height / 2
+      };
+      _draw = function(i, gen) {
+        var delta, rads;
+        rads = _this.getRads(i);
+        _this.pos = getPos(rads, _this.levelScaleFactor * gen * 2);
+        delta = {
+          x: 0,
+          y: 0
+        };
+        return circle = _this.drawCircle({
+          "class": "level-" + gen
+        }, {
+          x: _this.pos.x + delta.x,
+          y: _this.pos.y + delta.y
+        });
+      };
+      childCount = function() {
+        if (gen === 1) {
+          return 6;
+        } else {
+          return 2;
+        }
+      };
+      for (i = _i = 0, _ref1 = childCount() - 1; 0 <= _ref1 ? _i <= _ref1 : _i >= _ref1; i = 0 <= _ref1 ? ++_i : --_i) {
+        circles = (function() {
+          var _j, _ref2, _results;
+          _results = [];
+          for (x = _j = i, _ref2 = i + childCount() - 1; i <= _ref2 ? _j <= _ref2 : _j >= _ref2; x = i <= _ref2 ? ++_j : --_j) {
+            _results.push(_draw(x, gen));
+          }
+          return _results;
+        })();
+        debugger;
+      }
+      _results = [];
+      for (_j = 0, _len = circles.length; _j < _len; _j++) {
+        circle = circles[_j];
+        _results.push(this.drawGeneration(gen + 1, circle));
+      }
+      return _results;
+    };
+
+    Seed.prototype.drawCircle = function(attrs, pos) {
       var $text, node, pointAttrs, _attrs;
+      if (pos == null) {
+        pos = this.pos;
+      }
       _attrs = {
         r: this.r,
         "class": 'circle',
-        cx: this.pos.x,
-        cy: this.pos.y
+        cx: pos.x,
+        cy: pos.y
       };
       _(_attrs).extend(attrs);
+      _attrs['data-id'] = this.i;
       node = this.svg.append("svg:circle").attr(_attrs);
       pointAttrs = _.extend({}, _attrs, {
         r: 2,
@@ -254,11 +256,12 @@ window.require.register("scripts/views/seed", function(exports, require, module)
       });
       this.svg.append("svg:circle").attr(pointAttrs);
       $text = this.svg.append('text').attr({
-        x: this.pos.x,
-        y: this.pos.y
+        x: pos.x,
+        y: pos.y
       });
       $text.text(this.i);
-      return this.i++;
+      this.i++;
+      return node[0][0];
     };
 
     Seed.prototype.iterRadians = function(f, count, degreeOffset) {
@@ -273,6 +276,15 @@ window.require.register("scripts/views/seed", function(exports, require, module)
         _results.push(f(i, degrees, rads));
       }
       return _results;
+    };
+
+    Seed.prototype.getRads = function(i, count) {
+      var degrees, rads;
+      if (count == null) {
+        count = 6;
+      }
+      degrees = (360 * (i / count)) % 360;
+      return rads = degrees * Math.PI / 180;
     };
 
     return Seed;
