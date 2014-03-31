@@ -150,7 +150,7 @@ window.require.register("scripts/views/seed", function(exports, require, module)
         x: $(this.svg[0]).width() / 2,
         y: $(this.svg[0]).height() / 2
       };
-      this.r = 140;
+      this.r = 80;
       this.i = 0;
       this.drawCircles();
       return this;
@@ -175,10 +175,13 @@ window.require.register("scripts/views/seed", function(exports, require, module)
       }
     };
 
-    Seed.prototype.drawGeneration = function(gen, circle) {
-      var childCount, circles, getPos, i, rect, x, _draw, _i, _j, _len, _ref1, _results,
+    Seed.prototype.drawGeneration = function(gen, circle, dir) {
+      var childCount, circles, getPos, i, rect, recurse, _draw, _i, _j, _len, _ref1, _results,
         _this = this;
-      if (gen >= 3) {
+      if (dir == null) {
+        dir = 0;
+      }
+      if (gen >= 4) {
         return;
       }
       getPos = function(rads, rscale) {
@@ -192,17 +195,22 @@ window.require.register("scripts/views/seed", function(exports, require, module)
       };
       rect = circle.getBoundingClientRect();
       this.pos = {
-        x: rect.left + rect.width / 2,
-        y: rect.top + rect.height / 2
+        x: rect.left + (rect.width / 2) - this.r * 1.5,
+        y: rect.top + (rect.height / 2) + this.r * this.levelScaleFactor
       };
       _draw = function(i, gen) {
         var delta, rads;
         rads = _this.getRads(i);
-        _this.pos = getPos(rads, _this.levelScaleFactor * gen * 2);
+        if (false) {
+          _this.pos = getPos(rads, _this.levelScaleFactor * (gen + 1));
+        } else {
+          _this.pos = getPos(rads, _this.levelScaleFactor * gen * 2);
+        }
         delta = {
           x: 0,
           y: 0
         };
+        debugger;
         return circle = _this.drawCircle({
           "class": "level-" + gen
         }, {
@@ -211,27 +219,27 @@ window.require.register("scripts/views/seed", function(exports, require, module)
         });
       };
       childCount = function() {
-        if (gen === 1) {
+        if (gen < 2) {
           return 6;
         } else {
-          return 2;
+          return 6;
         }
       };
+      circles = [];
       for (i = _i = 0, _ref1 = childCount() - 1; 0 <= _ref1 ? _i <= _ref1 : _i >= _ref1; i = 0 <= _ref1 ? ++_i : --_i) {
-        circles = (function() {
-          var _j, _ref2, _results;
-          _results = [];
-          for (x = _j = i, _ref2 = i + childCount() - 1; i <= _ref2 ? _j <= _ref2 : _j >= _ref2; x = i <= _ref2 ? ++_j : --_j) {
-            _results.push(_draw(x, gen));
-          }
-          return _results;
-        })();
-        debugger;
+        circles.push(_draw(i + dir, gen));
       }
+      recurse = 0;
       _results = [];
       for (_j = 0, _len = circles.length; _j < _len; _j++) {
         circle = circles[_j];
-        _results.push(this.drawGeneration(gen + 1, circle));
+        this.drawGeneration(gen + 1, circle, dir);
+        recurse++;
+        if (recurse > 6) {
+          break;
+        } else {
+          _results.push(void 0);
+        }
       }
       return _results;
     };

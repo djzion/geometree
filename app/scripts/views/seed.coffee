@@ -4,7 +4,7 @@ module.exports = class Seed extends Backbone.View
     @$el.html ''
     @svg = d3.select("#page").append("svg")
     @center = x: $(@svg[0]).width() / 2, y: $(@svg[0]).height() / 2
-    @r = 140
+    @r = 80
     @i = 0
     @drawCircles()
     @
@@ -31,8 +31,8 @@ module.exports = class Seed extends Backbone.View
       @drawGeneration(1, circle)
 
 
-  drawGeneration: (gen, circle) ->
-    return if gen >= 3
+  drawGeneration: (gen, circle, dir=0) ->
+    return if gen >= 4
 
     getPos = (rads, rscale=1) =>
       x: @pos.x + (Math.sin rads) * (@r * rscale)
@@ -40,28 +40,34 @@ module.exports = class Seed extends Backbone.View
 
     rect = circle.getBoundingClientRect()
     @pos =
-      x: rect.left + rect.width / 2
-      y: rect.top + rect.height / 2
+      x: rect.left + (rect.width / 2) - @r * 1.5
+      y: rect.top + (rect.height / 2) + @r * @levelScaleFactor
 
     _draw = (i, gen) =>
       rads = @getRads(i)
-      @pos = getPos(rads, @levelScaleFactor * (gen) * 2)
+      if false
+        @pos = getPos(rads, @levelScaleFactor * (gen+1))
+      else
+        @pos = getPos(rads, @levelScaleFactor * (gen) * 2)
       delta = x: 0, y:0
+      debugger
       circle = @drawCircle({class: "level-#{gen}"}, x: @pos.x + delta.x, y: @pos.y + delta.y)
 
     childCount = ->
-      if gen is 1
+      if gen < 2
         6
       else
-        2
+        6
 
+    circles = []
     for i in [0..childCount()-1]
-      circles = (_draw(x, gen) for x in [i..i+childCount()-1])
-      debugger
+      circles.push _draw(i+dir, gen)
 
+    recurse = 0
     for circle in circles
-      @drawGeneration(gen+1, circle)
-
+      @drawGeneration(gen+1, circle, dir)
+      recurse++
+      break if recurse > 6
 
   drawCircle: (attrs, pos=@pos) ->
     _attrs =
