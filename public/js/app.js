@@ -80,11 +80,13 @@
 })();
 
 window.require.register("scripts/app", function(exports, require, module) {
-  var $, App, Seed, app, _ref,
+  var $, App, Grid, Seed, app, _ref,
     __hasProp = {}.hasOwnProperty,
     __extends = function(child, parent) { for (var key in parent) { if (__hasProp.call(parent, key)) child[key] = parent[key]; } function ctor() { this.constructor = child; } ctor.prototype = parent.prototype; child.prototype = new ctor(); child.__super__ = parent.prototype; return child; };
 
   Seed = require('scripts/views/seed');
+
+  Grid = require('scripts/views/grid');
 
   $ = jQuery;
 
@@ -108,11 +110,24 @@ window.require.register("scripts/app", function(exports, require, module) {
     };
 
     App.prototype.ready = function() {
+      var height, width;
+      width = $("#page").width();
+      height = $("#page").height();
+      this.svg = d3.select("#page").append("svg").attr({
+        viewBox: "" + (-width / 2) + " " + (-height / 2) + " " + width + " " + height
+      });
       this.view = new Seed({
         el: $('#page'),
-        model: this
+        model: this,
+        app: this
       });
-      return this.view.render();
+      this.view.render();
+      this.grid = new Grid({
+        el: $('#page'),
+        model: this,
+        app: this
+      });
+      return this.grid.render();
     };
 
     return App;
@@ -130,10 +145,107 @@ window.require.register("scripts/app", function(exports, require, module) {
   Backbone.$ = jQuery;
   
 });
-window.require.register("scripts/views/seed", function(exports, require, module) {
-  var Seed, _ref,
+window.require.register("scripts/models/circle", function(exports, require, module) {
+  var Circle, _ref,
     __hasProp = {}.hasOwnProperty,
     __extends = function(child, parent) { for (var key in parent) { if (__hasProp.call(parent, key)) child[key] = parent[key]; } function ctor() { this.constructor = child; } ctor.prototype = parent.prototype; child.prototype = new ctor(); child.__super__ = parent.prototype; return child; };
+
+  module.exports = Circle = (function(_super) {
+    __extends(Circle, _super);
+
+    function Circle() {
+      _ref = Circle.__super__.constructor.apply(this, arguments);
+      return _ref;
+    }
+
+    return Circle;
+
+  })(Backbone.Model);
+  
+});
+window.require.register("scripts/models/circles", function(exports, require, module) {
+  var Circle, Circles, _ref,
+    __hasProp = {}.hasOwnProperty,
+    __extends = function(child, parent) { for (var key in parent) { if (__hasProp.call(parent, key)) child[key] = parent[key]; } function ctor() { this.constructor = child; } ctor.prototype = parent.prototype; child.prototype = new ctor(); child.__super__ = parent.prototype; return child; };
+
+  Circle = require('scripts/models/circle');
+
+  module.exports = Circles = (function(_super) {
+    __extends(Circles, _super);
+
+    function Circles() {
+      _ref = Circles.__super__.constructor.apply(this, arguments);
+      return _ref;
+    }
+
+    Circles.prototype.model = Circle;
+
+    return Circles;
+
+  })(Backbone.Collection);
+  
+});
+window.require.register("scripts/views/grid", function(exports, require, module) {
+  var Grid, _ref,
+    __hasProp = {}.hasOwnProperty,
+    __extends = function(child, parent) { for (var key in parent) { if (__hasProp.call(parent, key)) child[key] = parent[key]; } function ctor() { this.constructor = child; } ctor.prototype = parent.prototype; child.prototype = new ctor(); child.__super__ = parent.prototype; return child; };
+
+  module.exports = Grid = (function(_super) {
+    __extends(Grid, _super);
+
+    function Grid() {
+      _ref = Grid.__super__.constructor.apply(this, arguments);
+      return _ref;
+    }
+
+    Grid.prototype.initialize = function(options) {
+      this.options = options;
+    };
+
+    Grid.prototype.render = function() {
+      var xAxis;
+      this.svg = this.options.app.svg;
+      this.rect = this.svg[0][0].getBoundingClientRect();
+      this.center = {
+        x: this.rect.width / 2,
+        y: this.rect.height / 2
+      };
+      this.pxScale = 100;
+      this.svg.append('svg:circle').attr({
+        cx: this.center.x,
+        cy: this.center.y,
+        r: 5
+      });
+      this.svg.append('svg:line').attr({
+        x1: -this.center.x,
+        y1: 0,
+        x2: this.rect.width,
+        y2: 0,
+        "class": 'axis'
+      });
+      this.svg.append('svg:line').attr({
+        x1: 0,
+        y1: -this.center.y,
+        x2: 0,
+        y2: this.rect.height,
+        "class": 'axis'
+      });
+      return xAxis = d3.svg.axis().scale(1).tickValues([-3, -2, -1, 0, 1, 2, 3]);
+    };
+
+    return Grid;
+
+  })(Backbone.View);
+  
+});
+window.require.register("scripts/views/seed", function(exports, require, module) {
+  var Circle, Circles, Seed, _ref,
+    __hasProp = {}.hasOwnProperty,
+    __extends = function(child, parent) { for (var key in parent) { if (__hasProp.call(parent, key)) child[key] = parent[key]; } function ctor() { this.constructor = child; } ctor.prototype = parent.prototype; child.prototype = new ctor(); child.__super__ = parent.prototype; return child; };
+
+  Circle = require('scripts/models/circle');
+
+  Circles = require('scripts/models/circles');
 
   module.exports = Seed = (function(_super) {
     __extends(Seed, _super);
@@ -143,30 +255,53 @@ window.require.register("scripts/views/seed", function(exports, require, module)
       return _ref;
     }
 
+    Seed.prototype.initialize = function(options) {
+      this.options = options;
+      Seed.__super__.initialize.apply(this, arguments);
+      return this.circles = new Circles();
+    };
+
     Seed.prototype.render = function() {
-      this.$el.html('');
-      this.svg = d3.select("#page").append("svg");
+      this.svg = this.options.app.svg;
       this.center = {
-        x: $(this.svg[0]).width() / 2,
-        y: $(this.svg[0]).height() / 2
+        x: 0,
+        y: 0
       };
       this.r = 80;
       this.i = 0;
+      this.createCircles();
       this.drawCircles();
       return this;
     };
 
-    Seed.prototype.drawCircles = function() {
-      var circle;
+    Seed.prototype.createCircles = function() {
+      var circle, getPos,
+        _this = this;
       this.pos = _(this.center).clone();
-      circle = this.drawCircle({
+      circle = this.createCircle({
         "class": 'center'
       });
       this.levelScaleFactor = 0.866;
+      getPos = function(rads, rscale) {
+        if (rscale == null) {
+          rscale = 1;
+        }
+        return {
+          x: _this.center.x + (Math.sin(rads)) * (_this.r * rscale),
+          y: _this.center.y - (Math.cos(rads)) * (_this.r * rscale)
+        };
+      };
       this.level = 1;
+      this.iterRadians(function(i, degrees, rads) {
+        _this.pos = getPos(rads, 1);
+        return _this.createCircle({
+          "class": 'level-1',
+          'data-id': i
+        });
+      }, 6);
       if (this.model.get('mode') === 'seed') {
         this.pos = _(this.center).clone();
-        this.drawCircle({
+        this.createCircle({
           "class": 'outer',
           r: this.r * 2
         });
@@ -176,12 +311,12 @@ window.require.register("scripts/views/seed", function(exports, require, module)
     };
 
     Seed.prototype.drawGeneration = function(gen, circle, dir) {
-      var childCount, circles, getPos, i, rect, recurse, _draw, _i, _j, _len, _ref1, _results,
+      var childCount, circles, getPos, i, _draw, _i, _j, _ref1, _ref2, _results,
         _this = this;
       if (dir == null) {
         dir = 0;
       }
-      if (gen >= 4) {
+      if (gen >= 2) {
         return;
       }
       getPos = function(rads, rscale) {
@@ -193,25 +328,16 @@ window.require.register("scripts/views/seed", function(exports, require, module)
           y: _this.pos.y - (Math.cos(rads)) * (_this.r * rscale)
         };
       };
-      rect = circle.getBoundingClientRect();
-      this.pos = {
-        x: rect.left + (rect.width / 2) - this.r * 1.5,
-        y: rect.top + (rect.height / 2) + this.r * this.levelScaleFactor
-      };
+      "rect = circle.getBoundingClientRect()\n@pos =\n  x: rect.left + (rect.width / 2) - @r * 1.5\n  y: rect.top + (rect.height / 2) + @r * @levelScaleFactor";
       _draw = function(i, gen) {
         var delta, rads;
         rads = _this.getRads(i);
-        if (false) {
-          _this.pos = getPos(rads, _this.levelScaleFactor * (gen + 1));
-        } else {
-          _this.pos = getPos(rads, _this.levelScaleFactor * gen * 2);
-        }
+        _this.pos = getPos(rads, _this.levelScaleFactor * 2);
         delta = {
           x: 0,
           y: 0
         };
-        debugger;
-        return circle = _this.drawCircle({
+        return circle = _this.createCircle({
           "class": "level-" + gen
         }, {
           x: _this.pos.x + delta.x,
@@ -219,33 +345,27 @@ window.require.register("scripts/views/seed", function(exports, require, module)
         });
       };
       childCount = function() {
-        if (gen < 2) {
+        if (gen === 1) {
           return 6;
+        } else if (gen === 2) {
+          return 2;
         } else {
-          return 6;
+          return 2;
         }
       };
       circles = [];
       for (i = _i = 0, _ref1 = childCount() - 1; 0 <= _ref1 ? _i <= _ref1 : _i >= _ref1; i = 0 <= _ref1 ? ++_i : --_i) {
-        circles.push(_draw(i + dir, gen));
+        circles.push(_draw((dir + i) % 6, gen));
       }
-      recurse = 0;
       _results = [];
-      for (_j = 0, _len = circles.length; _j < _len; _j++) {
-        circle = circles[_j];
-        this.drawGeneration(gen + 1, circle, dir);
-        recurse++;
-        if (recurse > 6) {
-          break;
-        } else {
-          _results.push(void 0);
-        }
+      for (i = _j = 0, _ref2 = circles.length - 1; 0 <= _ref2 ? _j <= _ref2 : _j >= _ref2; i = 0 <= _ref2 ? ++_j : --_j) {
+        _results.push(this.drawGeneration(gen + 1, circle, (i + dir) % 6));
       }
       return _results;
     };
 
-    Seed.prototype.drawCircle = function(attrs, pos) {
-      var $text, node, pointAttrs, _attrs;
+    Seed.prototype.createCircle = function(attrs, pos) {
+      var circle, _attrs;
       if (pos == null) {
         pos = this.pos;
       }
@@ -253,23 +373,49 @@ window.require.register("scripts/views/seed", function(exports, require, module)
         r: this.r,
         "class": 'circle',
         cx: pos.x,
-        cy: pos.y
+        cy: pos.y,
+        'data-id': this.i
       };
       _(_attrs).extend(attrs);
-      _attrs['data-id'] = this.i;
-      node = this.svg.append("svg:circle").attr(_attrs);
-      pointAttrs = _.extend({}, _attrs, {
-        r: 2,
-        "class": ''
+      this.i++;
+      circle = new Circle({
+        pos: pos,
+        attrs: _attrs,
+        index: this.i
       });
+      this.circles.add(circle);
+      return circle;
+    };
+
+    Seed.prototype.drawCircle = function(circle) {
+      var $text, node, pointAttrs;
+      node = this.svg.append("svg:circle").attr(circle.get('attrs'));
+      pointAttrs = {
+        r: 2,
+        cx: circle.get('pos').x,
+        cy: circle.get('pos').y
+      };
       this.svg.append("svg:circle").attr(pointAttrs);
       $text = this.svg.append('text').attr({
-        x: pos.x,
-        y: pos.y
+        x: circle.get('pos').x,
+        y: circle.get('pos').y
       });
-      $text.text(this.i);
-      this.i++;
+      $text.text(circle.get('index'));
       return node[0][0];
+    };
+
+    Seed.prototype.drawCircles = function() {
+      var i, _draw,
+        _this = this;
+      i = 0;
+      return (_draw = function() {
+        if (i >= _this.circles.size() - 1) {
+          return;
+        }
+        _this.drawCircle(_this.circles.models[i]);
+        i++;
+        return _.delay(_draw, 500);
+      })();
     };
 
     Seed.prototype.iterRadians = function(f, count, degreeOffset) {

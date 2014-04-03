@@ -1,4 +1,5 @@
 Seed = require 'scripts/views/seed'
+Grid = require 'scripts/views/grid'
 $ = jQuery
 
 class App extends Backbone.Model
@@ -10,9 +11,14 @@ class App extends Backbone.Model
     @on 'change:mode', => @view.render()
 
   ready: ->
-    @view = new Seed(el: $('#page'), model: @)
+    width = $("#page").width()
+    height = $("#page").height()
+    @svg = d3.select("#page").append("svg").attr(viewBox: "#{-width/2} #{-height/2} #{width} #{height}")
+    @view = new Seed(el: $('#page'), model: @, app: @)
     @view.render()
 
+    @grid = new Grid(el: $('#page'), model: @, app: @)
+    @grid.render()
 
 app = new App
 

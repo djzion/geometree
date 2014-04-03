@@ -1,92 +1,119 @@
+Circle = require 'scripts/models/circle'
+Circles = require 'scripts/models/circles'
+
 module.exports = class Seed extends Backbone.View
 
+  initialize: (@options) ->
+    super
+    @circles = new Circles()
+
   render: ->
-    @$el.html ''
-    @svg = d3.select("#page").append("svg")
-    @center = x: $(@svg[0]).width() / 2, y: $(@svg[0]).height() / 2
+    @svg = @options.app.svg
+    @center = x: 0, y: 0
     @r = 80
     @i = 0
+    @createCircles()
     @drawCircles()
     @
 
-  drawCircles: ->
+  createCircles: ->
     @pos = _(@center).clone()
-    circle = @drawCircle(class: 'center')
-
+    circle = @createCircle(class: 'center')
+    #circle = @createCircle({class: 'center'}, {x:0, y: -@r})
 
 
     @levelScaleFactor = 0.866
 
+    getPos = (rads, rscale=1) =>
+      x: @center.x + (Math.sin rads) * (@r * rscale)
+      y: @center.y - (Math.cos rads) * (@r * rscale)
+
     @level = 1
-    #@iterRadians (i, degrees, rads) =>
-    #  @pos = getPos(rads, 1)
-    #  @drawCircle(class: 'level-1', 'data-id': i)
-    #, 6
+    @iterRadians (i, degrees, rads) =>
+      @pos = getPos(rads, 1)
+      @createCircle(class: 'level-1', 'data-id': i)
+    , 6
 
     if @model.get('mode') is 'seed'
       @pos = _(@center).clone()
-      @drawCircle(class: 'outer', r: @r * 2)
+      @createCircle(class: 'outer', r: @r * 2)
       return
     else
       @drawGeneration(1, circle)
 
-
   drawGeneration: (gen, circle, dir=0) ->
-    return if gen >= 4
+    return if gen >= 2
 
     getPos = (rads, rscale=1) =>
       x: @pos.x + (Math.sin rads) * (@r * rscale)
       y: @pos.y - (Math.cos rads) * (@r * rscale)
-
+    """
     rect = circle.getBoundingClientRect()
     @pos =
       x: rect.left + (rect.width / 2) - @r * 1.5
       y: rect.top + (rect.height / 2) + @r * @levelScaleFactor
-
+    """
     _draw = (i, gen) =>
       rads = @getRads(i)
-      if false
-        @pos = getPos(rads, @levelScaleFactor * (gen+1))
-      else
-        @pos = getPos(rads, @levelScaleFactor * (gen) * 2)
+      @pos = getPos(rads, @levelScaleFactor * 2)
       delta = x: 0, y:0
-      debugger
-      circle = @drawCircle({class: "level-#{gen}"}, x: @pos.x + delta.x, y: @pos.y + delta.y)
+      circle = @createCircle({class: "level-#{gen}"}, x: @pos.x + delta.x, y: @pos.y + delta.y)
 
     childCount = ->
-      if gen < 2
+      if gen is 1
         6
+      else if gen is 2
+        2
       else
-        6
+        2
 
     circles = []
     for i in [0..childCount()-1]
-      circles.push _draw(i+dir, gen)
+      circles.push _draw((dir+i) % 6, gen)
 
-    recurse = 0
-    for circle in circles
-      @drawGeneration(gen+1, circle, dir)
-      recurse++
-      break if recurse > 6
+    for i in [0..circles.length-1]
+      @drawGeneration(gen+1, circle, (i+dir)%6)
 
-  drawCircle: (attrs, pos=@pos) ->
+  createCircle: (attrs, pos=@pos) ->
     _attrs =
       r: @r
       class: 'circle'
       cx: pos.x
       cy: pos.y
+      'data-id':@i
     _(_attrs).extend attrs
-    _attrs['data-id'] = @i
-    node = @svg.append("svg:circle").attr(_attrs)
-    pointAttrs = _.extend({}, _attrs, r: 2, class: '')
+    @i++
+
+    circle = new Circle
+      pos: pos
+      attrs: _attrs
+      index: @i
+    @circles.add circle
+    circle
+
+  drawCircle: (circle) ->
+    node = @svg.append("svg:circle").attr(circle.get 'attrs')
+    pointAttrs =
+      r: 2
+      cx: circle.get('pos').x
+      cy: circle.get('pos').y
     @svg.append("svg:circle").attr pointAttrs
 
     $text = @svg.append('text').attr
-      x: pos.x
-      y: pos.y
-    $text.text @i
-    @i++
+      x: circle.get('pos').x
+      y: circle.get('pos').y
+    $text.text circle.get('index')
+
     node[0][0]
+
+  drawCircles: ->
+    i = 0
+    do _draw = =>
+      if i >= @circles.size() - 1
+        return
+      @drawCircle @circles.models[i]
+      i++
+      _.delay _draw, 500
 
   iterRadians: (f, count, degreeOffset=0) ->
     for i in [0..count-1]
