@@ -10,17 +10,19 @@ module.exports = class Seed extends Backbone.View
   render: ->
     @svg = @options.app.svg
     @center = x: 0, y: 0
-    @r = 80
+    @r = 200
     @i = 0
     @createCircles()
     @drawCircles()
+
+    pos = @circles.get(12).intersection @circles.get(13)
+    @drawMarker pos
     @
 
   createCircles: ->
     @pos = _(@center).clone()
     circle = @createCircle(class: 'center')
     #circle = @createCircle({class: 'center'}, {x:0, y: -@r})
-
 
     @levelScaleFactor = 0.866
 
@@ -31,8 +33,20 @@ module.exports = class Seed extends Backbone.View
     @level = 1
     @iterRadians (i, degrees, rads) =>
       @pos = getPos(rads, 1)
-      @createCircle(class: 'level-1', 'data-id': i)
+      @createCircle(class: 'level-1')
     , 6
+
+    @iterRadians (i, degrees, rads) =>
+      @pos = getPos(rads, 2)
+      @createCircle(class: 'level-2')
+    , 6
+
+    @iterRadians (i, degrees, rads) =>
+      @pos = getPos(rads, 1.73)
+      @createCircle(class: 'level-2')
+    , 6, -30
+
+    return
 
     if @model.get('mode') is 'seed'
       @pos = _(@center).clone()
@@ -82,17 +96,19 @@ module.exports = class Seed extends Backbone.View
       cy: pos.y
       'data-id':@i
     _(_attrs).extend attrs
-    @i++
 
     circle = new Circle
+      id: @i
       pos: pos
       attrs: _attrs
       index: @i
     @circles.add circle
+    @i++
+
     circle
 
   drawCircle: (circle) ->
-    node = @svg.append("svg:circle").attr(circle.get 'attrs')
+    node = @svg.append("svg:circle").attr(circle.get 'attrs').datum(circle: circle)
     pointAttrs =
       r: 2
       cx: circle.get('pos').x
@@ -104,16 +120,27 @@ module.exports = class Seed extends Backbone.View
       y: circle.get('pos').y
     $text.text circle.get('index')
 
+    node.on 'click', (data) ->
+      console.log data.circle.toJSON()
+
     node[0][0]
 
   drawCircles: ->
     i = 0
     do _draw = =>
-      if i >= @circles.size() - 1
+      if i >= @circles.size()
         return
       @drawCircle @circles.models[i]
       i++
-      _.delay _draw, 500
+      wait = if i < 12 then 0 else 500
+      _.delay _draw, wait
+
+  drawMarker: (pos) ->
+    pointAttrs =
+      r: 2
+      cx: pos.x
+      cy: pos.y
+    @svg.append("svg:circle").attr pointAttrs
 
   iterRadians: (f, count, degreeOffset=0) ->
     for i in [0..count-1]

@@ -4,6 +4,7 @@ exports.config =
       joinTo:
         'js/app.js': /^app/
         'js/vendor.js': /^vendor/
+        'js/spec.js': /^spec/
       order:
         before: [
           'vendor/scripts/jquery.js'
@@ -23,3 +24,6 @@ exports.config =
     jade:
       options:
         pretty: yes # Adds pretty-indentation whitespaces to output (false by default)
+
+  conventions:
+    ignored: -> false
